@@ -71,18 +71,21 @@ def process_products():
     driver.get(product_page_url)
     time.sleep(3)
 
-    products = driver.find_elements(
-        By.CSS_SELECTOR,
-        ".el-table__fixed > .el-table__fixed-body-wrapper > table > > tbody > .el-table__row",
-    )
+    products_fixed = driver.find_elements(By.CSS_SELECTOR, ".el-table__fixed-body-wrapper > table > tbody > tr")
+    products_body = driver.find_elements(By.CSS_SELECTOR, ".el-table__body-wrapper > table > tbody > tr")
 
-    for product in products:
-        columns = product.find_elements(By.CSS_SELECTOR, "td")
-        product_price = int(
-            product.text.split("\n")[0].replace("원", "").replace(",", "")
-        )
+    if len(products_fixed) == len(products_body):
+        length = len(products_fixed)
+    else:
+        print("Length mismatched...")
+        return
 
-        modify_button = columns[2].find_element(By.CSS_SELECTOR, "button")
+    for i in range(length):
+        body_columns = products_body[i].find_elements(By.CSS_SELECTOR, "td")
+        product_price = body_columns[6].find_element(By.CSS_SELECTOR, "span").text.replace("원", "").replace(",", "")
+
+        fixed_columns = products_fixed[i].find_elements(By.CSS_SELECTOR, "td")
+        modify_button = fixed_columns[2].find_element(By.CSS_SELECTOR, "button")
         modify_button.click()
 
         price_card = driver.find_element(
