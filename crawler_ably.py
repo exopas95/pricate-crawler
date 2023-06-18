@@ -2,10 +2,10 @@ import platform
 import time
 
 import pyperclip
-import requests
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from tqdm import tqdm
 
 import browser
 
@@ -65,37 +65,95 @@ def close_popup():
     print("Popup closed...")
 
 
-def process_products():
-    print("Scraping start...")
-    product_page_url = "https://my.a-bly.com/goods/list"
-    driver.get(product_page_url)
+def update_price(_id, price):
+    url = f"https://my.a-bly.com/goods/edit/{_id}"
+    driver.get(url)
+
     time.sleep(3)
 
-    products_fixed = driver.find_elements(By.CSS_SELECTOR, ".el-table__fixed-body-wrapper > table > tbody > tr")
-    products_body = driver.find_elements(By.CSS_SELECTOR, ".el-table__body-wrapper > table > tbody > tr")
+    try:
+        alert = driver.switch_to.alert
+        alert.accept()
+    except:
+        pass
 
-    if len(products_fixed) == len(products_body):
-        length = len(products_fixed)
+    price_card = driver.find_element(By.CSS_SELECTOR, ".price-card")
+    prices = price_card.find_elements(By.CSS_SELECTOR, "form > div")
+
+    discount = prices[2]
+
+    discount_option = discount.find_element(
+        By.CSS_SELECTOR, "span.el-radio__input > input"
+    )
+    if discount_option.is_selected():
+        print(f"Discount option already applied: {_id}")
     else:
-        print("Length mismatched...")
-        return
+        driver.execute_script("arguments[0].click();", discount_option)
 
-    for i in range(length):
-        body_columns = products_body[i].find_elements(By.CSS_SELECTOR, "td")
-        product_price = body_columns[6].find_element(By.CSS_SELECTOR, "span").text.replace("원", "").replace(",", "")
+        discounted_price = discount.find_element(By.CSS_SELECTOR, ".el-input__inner")
+        discounted_price.clear()
+        clipboard_input(discounted_price, "1000")
 
-        fixed_columns = products_fixed[i].find_elements(By.CSS_SELECTOR, "td")
-        modify_button = fixed_columns[2].find_element(By.CSS_SELECTOR, "button")
-        modify_button.click()
+        sales_price = prices[1].find_element(By.CSS_SELECTOR, "input")
+        sales_price.clear()
 
-        price_card = driver.find_element(
-            By.CSS_SELECTOR, "div.el-card.price-card.is-hover-shadow"
+        clipboard_input(
+            sales_price,
+            str(int(price) + 1000),
         )
 
-        prices = price_card.find_elements(By.CSS_SELECTOR, "form > div")
-        sales_price = prices[1]
+        driver.find_element(
+            By.CSS_SELECTOR, ".el-row > button.el-button.el-button--primary.is-plain"
+        ).click()
+        print(f"Update complete: {_id}")
+        time.sleep(3)
 
-        clipboard_input(sales_price, product_price + 1000)
+    try:
+        alert = driver.switch_to.alert
+        alert.accept()
+    except:
+        pass
+
+
+def process_products():
+    print("Scraping start...")
+
+    total_page = 58
+    for i in tqdm(range(0, total_page)):
+        current_page = i + 1
+
+        product_page_url = f"https://my.a-bly.com/goods/list?page={current_page}"
+        driver.get(product_page_url)
+        time.sleep(3)
+
+        products_fixed = driver.find_elements(
+            By.CSS_SELECTOR, ".el-table__fixed-body-wrapper > table > tbody > tr"
+        )
+        product_ids = [
+            product.find_elements(By.CSS_SELECTOR, "td")[1]
+            .find_element(By.CSS_SELECTOR, "span")
+            .text
+            for product in products_fixed
+        ]
+
+        products_body = driver.find_elements(
+            By.CSS_SELECTOR, ".el-table__body-wrapper > table > tbody > tr"
+        )
+
+        product_prices = [
+            product.find_elements(By.CSS_SELECTOR, "td")[6]
+            .find_element(By.CSS_SELECTOR, "span")
+            .text.replace("원", "")
+            .replace(",", "")
+            for product in products_body
+        ]
+
+        if len(products_fixed) != len(products_body):
+            print("Length mismatched...")
+            return
+
+        for product_id, price in zip(product_ids, product_prices):
+            update_price(product_id, price)
 
 
 browser.init_webdriver_pool(1)
