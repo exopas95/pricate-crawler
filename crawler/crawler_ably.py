@@ -5,6 +5,8 @@ import pyperclip
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from tqdm import tqdm
 
 import browser
@@ -77,7 +79,10 @@ def update_price(_id, price):
     except:
         pass
 
-    price_card = driver.find_element(By.CSS_SELECTOR, ".price-card")
+    wait = WebDriverWait(driver, 20)
+    price_card = wait.until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, ".price-card"))
+    )
     prices = price_card.find_elements(By.CSS_SELECTOR, "form > div")
 
     discount = prices[2]
@@ -119,7 +124,7 @@ def process_products():
     print("Scraping start...")
 
     total_page = 58
-    for i in tqdm(range(0, total_page)):
+    for i in tqdm(range(20, total_page)):
         current_page = i + 1
 
         product_page_url = f"https://my.a-bly.com/goods/list?page={current_page}"

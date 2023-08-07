@@ -38,8 +38,8 @@ def get_webdriver(index: int) -> webdriver.Chrome:
 
 def generate_chrome_driver():
     chrome_options = webdriver.ChromeOptions()
-    # chrome_options.add_argument("--headless")
-    # chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--incongnito")  # Secret Mode
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--disable-setuid-sandbox")  # Prevent conflict to uid
@@ -55,10 +55,8 @@ def generate_chrome_driver():
     return webdriver.Chrome(service=service, options=chrome_options)
 
 
-def selenium_scroll_down_to_end(webdriver, max_count=10):
-    scroll_pause_time = (
-        1  # You can set your own pause time. My laptop is a bit slow so I use 1 sec
-    )
+def selenium_scroll_down_to_end(webdriver, max_count=25):
+    scroll_pause_time = 0.1
     screen_height = webdriver.execute_script(
         "return window.screen.height;"
     )  # get the screen height of the web
